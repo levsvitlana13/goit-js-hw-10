@@ -1,23 +1,9 @@
-const options = {
-  enableTime: true,
-  time_24hr: true,
-  defaultDate: new Date(),
-  minuteIncrement: 1,
-  onClose(selectedDates) {
-    const selectedDate = selectedDates[0];
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
+import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
 
-    if (selectedDate < new Date()) {
-      alert('Будь ласка, оберіть дату в майбутньому');
-      document.querySelector('#start-btn').disabled = true;
-    } else {
-      userSelectedDate = selectedDate;
-      document.querySelector('#start-btn').disabled = false;
-    }
-  },
-};
-
-flatpickr('#datetime-picker', options);
-
+const input = document.querySelector('#datetime-picker');
 const startBtn = document.querySelector('#start-btn');
 const daysVal = document.querySelector('[data-days]');
 const hoursVal = document.querySelector('[data-hours]');
@@ -27,9 +13,33 @@ const secsVal = document.querySelector('[data-seconds]');
 let userSelectedDate = null;
 let timerId = null;
 
+const options = {
+  enableTime: true,
+  time_24hr: true,
+  defaultDate: new Date(),
+  minuteIncrement: 1,
+  onClose(selectedDates) {
+    const selectedDate = selectedDates[0];
+
+    if (!selectedDate || selectedDate < new Date()) {
+      iziToast.error({
+        title: 'Error',
+        message: 'Please choose a date in the future',
+        position: 'topRight',
+      });
+      startBtn.disabled = true;
+    } else {
+      userSelectedDate = selectedDate;
+      startBtn.disabled = false;
+    }
+  },
+};
+
+flatpickr(input, options);
+
 startBtn.addEventListener('click', () => {
   startBtn.disabled = true;
-  document.querySelector('#datetime-picker').disabled = true;
+  input.disabled = true;
 
   timerId = setInterval(() => {
     const currentTime = Date.now();
@@ -37,21 +47,25 @@ startBtn.addEventListener('click', () => {
 
     if (deltaTime <= 0) {
       clearInterval(timerId);
-      updateTimerInterface(0, 0, 0, 0);
-      document.querySelector('#datetime-picker').disabled = false;
+      updateTimerInterface({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      input.disabled = false;
       return;
     }
 
     const time = convertMs(deltaTime);
-    updateTimerInterface(time.days, time.hours, time.minutes, time.seconds);
+    updateTimerInterface(time);
   }, 1000);
 });
 
-function updateTimerInterface(d, h, m, s) {
-  daysVal.textContent = String(d).padStart(2, '0');
-  hoursVal.textContent = String(h).padStart(2, '0');
-  minsVal.textContent = String(m).padStart(2, '0');
-  secsVal.textContent = String(s).padStart(2, '0');
+function updateTimerInterface({ days, hours, minutes, seconds }) {
+  daysVal.textContent = addLeadingZero(days);
+  hoursVal.textContent = addLeadingZero(hours);
+  minsVal.textContent = addLeadingZero(minutes);
+  secsVal.textContent = addLeadingZero(seconds);
+}
+
+function addLeadingZero(value) {
+  return String(value).padStart(2, '0');
 }
 
 function convertMs(ms) {
